@@ -1121,3 +1121,266 @@ terraform {
   }
 }
 ```
+
+
+
+# Day 5: Provisioning and Provisioners
+Certainly, let's delve deeper into the `file`, `remote-exec`, and `local-exec` provisioners in Terraform, along with examples for each.
+
+1. **file Provisioner:**
+
+   The `file` provisioner is used to copy files or directories from the local machine to a remote machine. This is useful for deploying configuration files, scripts, or other assets to a provisioned instance.
+
+   Example:
+
+   ```hcl
+   resource "aws_instance" "example" {
+     ami           = "ami-0c55b159cbfafe1f0"
+     instance_type = "t2.micro"
+   }
+
+   provisioner "file" {
+     source      = "local/path/to/localfile.txt"
+     destination = "/path/on/remote/instance/file.txt"
+     connection {
+       type     = "ssh"
+       user     = "ec2-user"
+       private_key = file("~/.ssh/id_rsa")
+     }
+   }
+   ```
+
+   In this example, the `file` provisioner copies the `localfile.txt` from the local machine to the `/path/on/remote/instance/file.txt` location on the AWS EC2 instance using an SSH connection.
+
+2. **remote-exec Provisioner:**
+
+   The `remote-exec` provisioner is used to run scripts or commands on a remote machine over SSH or WinRM connections. It's often used to configure or install software on provisioned instances.
+
+   Example:
+
+   ```hcl
+   resource "aws_instance" "example" {
+     ami           = "ami-0c55b159cbfafe1f0"
+     instance_type = "t2.micro"
+   }
+
+   provisioner "remote-exec" {
+     inline = [
+       "sudo yum update -y",
+       "sudo yum install -y httpd",
+       "sudo systemctl start httpd",
+     ]
+
+     connection {
+       type        = "ssh"
+       user        = "ec2-user"
+       private_key = file("~/.ssh/id_rsa")
+       host        = aws_instance.example.public_ip
+     }
+   }
+   ```
+
+   In this example, the `remote-exec` provisioner connects to the AWS EC2 instance using SSH and runs a series of commands to update the package repositories, install Apache HTTP Server, and start the HTTP server.
+
+3. **local-exec Provisioner:**
+
+   The `local-exec` provisioner is used to run scripts or commands locally on the machine where Terraform is executed. It is useful for tasks that don't require remote execution, such as initializing a local database or configuring local resources.
+
+   Example:
+
+   ```hcl
+   resource "null_resource" "example" {
+     triggers = {
+       always_run = "${timestamp()}"
+     }
+
+     provisioner "local-exec" {
+       command = "echo 'This is a local command'"
+     }
+   }
+   ```
+
+In this example, a `null_resource` is used with a `local-exec` provisioner to run a simple local command that echoes a message to the console whenever Terraform is applied or refreshed. The `timestamp()` function ensures it runs each time.
+
+**app.py**
+```python
+from flask import Flask
+
+app = Flask(__name__)
+
+@app.route("/")
+def hello():
+    return "Hello, Terraform!"
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=80)
+```
+
+**main.tf**
+```hcl
+# Define the AWS provider configuration.
+provider "aws" {
+  region = "us-east-1"  # Replace with your desired AWS region.
+}
+
+variable "cidr" {
+  default = "10.0.0.0/16"
+}
+
+resource "aws_key_pair" "example" {
+  key_name   = "terraform-demo-abhi"  # Replace with your desired key name
+  public_key = file("~/.ssh/id_rsa.pub")  # Replace with the path to your public key file
+}
+
+resource "aws_vpc" "myvpc" {
+  cidr_block = var.cidr
+}
+
+resource "aws_subnet" "sub1" {
+  vpc_id                  = aws_vpc.myvpc.id
+  cidr_block              = "10.0.0.0/24"
+  availability_zone       = "us-east-1a"
+  map_public_ip_on_launch = true
+}
+
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.myvpc.id
+}
+
+resource "aws_route_table" "RT" {
+  vpc_id = aws_vpc.myvpc.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.igw.id
+  }
+}
+
+resource "aws_route_table_association" "rta1" {
+  subnet_id      = aws_subnet.sub1.id
+  route_table_id = aws_route_table.RT.id
+}
+
+resource "aws_security_group" "webSg" {
+  name   = "web"
+  vpc_id = aws_vpc.myvpc.id
+
+  ingress {
+    description = "HTTP from VPC"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    description = "SSH"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "Web-sg"
+  }
+}
+
+resource "aws_instance" "server" {
+  ami                    = "ami-0261755bbcb8c4a84"
+  instance_type          = "t2.micro"
+  key_name      = aws_key_pair.example.key_name
+  vpc_security_group_ids = [aws_security_group.webSg.id]
+  subnet_id              = aws_subnet.sub1.id
+
+  connection {
+    type        = "ssh"
+    user        = "ubuntu"  # Replace with the appropriate username for your EC2 instance
+    private_key = file("~/.ssh/id_rsa")  # Replace with the path to your private key
+    host        = self.public_ip
+  }
+
+  # File provisioner to copy a file from local to the remote EC2 instance
+  provisioner "file" {
+    source      = "app.py"  # Replace with the path to your local file
+    destination = "/home/ubuntu/app.py"  # Replace with the path on the remote instance
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "echo 'Hello from the remote instance'",
+      "sudo apt update -y",  # Update package lists (for ubuntu)
+      "sudo apt-get install -y python3-pip",  # Example package installation
+      "cd /home/ubuntu",
+      "sudo pip3 install flask",
+      "sudo python3 app.py &",
+    ]
+  }
+}
+```
+
+
+# Day 6: Managing Environments with Workspaces
+**module: ec2_instance**
+**main.tf**
+```hcl
+provider "aws" {
+    region = "us-east-1"
+}
+
+variable "ami" {
+  description = "This is AMI for the instance"
+}
+
+variable "instance_type" {
+  description = "This is the instance type, for example: t2.micro"
+}
+
+resource "aws_instance" "example" {
+    ami = var.ami
+    instance_type = var.instance_type
+}
+```
+
+**main.tf**
+```hcl
+provider "aws" {
+  region = "us-east-1"
+}
+
+variable "ami" {
+  description = "value"
+}
+
+variable "instance_type" {
+  description = "value"
+  type = map(string)
+
+  default = {
+    "dev" = "t2.micro"
+    "stage" = "t2.medium"
+    "prod" = "t2.xlarge"
+  }
+}
+
+module "ec2_instance" {
+  source = "./modules/ec2_instance"
+  ami = var.ami
+  instance_type = lookup(var.instance_type, terraform.workspace, "t2.micro")
+}
+```
+
+**terraform.tfvars**
+```hcl
+ami = "ami-053b0d53c279acc90"
+```
+
+
+
+# Day 7: Security and Advanced Topics
