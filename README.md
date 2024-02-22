@@ -3,15 +3,15 @@
 
 Before the advent of IaC, infrastructure management was typically a manual and time-consuming process. System administrators and operations teams had to:
 
-1. Manually Configure Servers: Servers and other infrastructure components were often set up and configured manually, which could lead to inconsistencies and errors.
+1. **Manually Configure Servers**: Servers and other infrastructure components were often set up and configured manually, which could lead to inconsistencies and errors.
 
-2. Lack of Version Control: Infrastructure configurations were not typically version-controlled, making it difficult to track changes or revert to previous states.
+2. **Lack of Version Control**: Infrastructure configurations were not typically version-controlled, making it difficult to track changes or revert to previous states.
 
-3. Documentation Heavy: Organizations relied heavily on documentation to record the steps and configurations required for different infrastructure setups. This documentation could become outdated quickly.
+3. **Documentation Heavy**: Organizations relied heavily on documentation to record the steps and configurations required for different infrastructure setups. This documentation could become outdated quickly.
 
-4. Limited Automation: Automation was limited to basic scripting, often lacking the robustness and flexibility offered by modern IaC tools.
+4. **Limited Automation**: Automation was limited to basic scripting, often lacking the robustness and flexibility offered by modern IaC tools.
 
-5. Slow Provisioning: Provisioning new resources or environments was a time-consuming process that involved multiple manual steps, leading to delays in project delivery.
+5. **Slow Provisioning**: Provisioning new resources or environments was a time-consuming process that involved multiple manual steps, leading to delays in project delivery.
 
 IaC addresses these challenges by providing a systematic, automated, and code-driven approach to infrastructure management. Popular IaC tools include Terraform, AWS CloudFormation, Azure Resource Manager templates others. 
 
@@ -97,7 +97,7 @@ c. Click on "Users" in the left navigation pane and then click "Add user."
 
 Use the AWS CLI to configure your credentials. Open a terminal and run:
 
-```
+```hcl
 aws configure
 ```
 
@@ -115,7 +115,7 @@ resource "aws_instance" "example" {
     instance_type = "t2.micro"
 }
 ```
-# Overview of steps
+## Overview of steps
 
 Create a directory for your Terraform project and create a Terraform configuration file (usually named `main.tf`) in that directory. In this file, you define the AWS provider and resources you want to create. Here's a basic example:
 
@@ -130,38 +130,37 @@ Create a directory for your Terraform project and create a Terraform configurati
    }
 ```
 
-## Initialize Terraform**
+**Initialize Terraform**
 
 In your terminal, navigate to the directory containing your Terraform configuration files and run:
 
-```
+```hcl
 terraform init
 ```
 
 This command initializes the Terraform working directory, downloading any necessary provider plugins.
 
-## Apply the Configuration
+**Apply the Configuration**
 
 Run the following command to create the AWS resources defined in your Terraform configuration:
 
-```
+```hcl
 terraform apply
 ```
 
 Terraform will display a plan of the changes it's going to make. Review the plan and type "yes" when prompted to apply it.
 
-## Verify Resources
+**Verify Resources**
 
 After Terraform completes the provisioning process, you can verify the resources created in the AWS Management Console or by using AWS CLI commands.
 
-## Destroy Resources
+**Destroy Resources**
 
 If you want to remove the resources created by Terraform, you can use the following command:
 
-```
+```hcl
 terraform destroy
 ```
-
 Be cautious when using `terraform destroy` as it will delete resources as specified in your Terraform configuration.
 
 
@@ -481,7 +480,7 @@ Here's how you typically use `.tfvars` files
 
 3. When running Terraform commands (e.g., terraform apply, terraform plan), you can specify which .tfvars file(s) to use with the -var-file option:
 
-```
+```hcl
 terraform apply -var-file=dev.tfvars
 ```
 
